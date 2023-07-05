@@ -11,12 +11,12 @@ class MainAdapter: RecyclerView.Adapter<MainHolder>() {
     private val listInfo = ArrayList<Info>()
 
     fun add(info: Info){
-        listInfo.add(info)
-        notifyDataSetChanged()
-    }
-
-    fun repeat(info: Info){
-        if (listInfo.get(listInfo.size-1).info != info.info) {
+        if (listInfo.size != 0) {
+            if (info.info != listInfo.get(listInfo.size - 1).info) {
+                listInfo.add(info)
+                notifyDataSetChanged()
+            }
+        } else {
             listInfo.add(info)
             notifyDataSetChanged()
         }

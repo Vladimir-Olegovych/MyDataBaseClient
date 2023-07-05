@@ -1,68 +1,92 @@
 package com.example.databasechat.client
 
-import android.os.Handler
-import android.os.Looper
-import android.widget.Toast
+import android.util.Log
 import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.io.Input
 import com.esotericsoftware.kryo.io.Output
-import com.example.databasechat.MainActivity
 import com.example.databasechat.client.models.Info
-import com.example.databasechat.constants.Constants.GET_JSON_ARRAY
-import com.example.databasechat.constants.Constants.GET_MESSAGE
+import com.example.databasechat.constants.Constants
 import org.apache.commons.io.IOUtils
 import java.net.Socket
-import java.util.concurrent.Executors
 
-class Client(private val activity: MainActivity) {
+class Client {
 
-    private val mainExecutor = Handler(Looper.getMainLooper())
-    private val executor = Executors.newSingleThreadExecutor()
+    private var socket: Socket? = null
+    private lateinit var input: Input
+    private lateinit var output: Output
 
-    private lateinit var socket: Socket
+    private val kryo = Kryo()
 
-    fun start(name: String, info: String) {
-        executor.execute {
-            val kryo = Kryo()
-            try {
-                socket = Socket("178.163.60.33", 27015)
+    private fun closeSocket(){
+        try {
+            IOUtils.closeQuietly(socket)
+        } catch (e: Throwable) {
+            e.printStackTrace()
+        }
+        Log.d("errorsSocket", "socket close")
+    }
 
-                val input = Input(socket.getInputStream())
-                val output = Output(socket.getOutputStream())
+    fun connect(address: String, port: Int) {
+        try {
+            socket = Socket(address, port)
+            input = Input(socket?.getInputStream())
+            output = Output(socket?.getOutputStream())
 
-                kryo.register(Info::class.java)
-                kryo.register(ArrayList<Info>()::class.java)
+            kryo.register(Info::class.java)
+            kryo.register(ArrayList<Info>()::class.java)
 
-                kryo.writeObject(output, Info(name, info))
-                output.flush()
+            Log.d("errorsSocket", "socket connect")
 
-                when (info){
-                    GET_JSON_ARRAY -> {
-                        val get = kryo.readObject(input, ArrayList<Info>()::class.java)
-                        mainExecutor.post { activity.getList(get) }
-                    }
-                    GET_MESSAGE -> {
-                        val get = kryo.readObject(input, Info::class.java)
-                        mainExecutor.post { activity.repeat(get) }
-                    }
-                    else -> {
-                        val get = kryo.readObject(input, Info::class.java)
-                        mainExecutor.post { activity.getInfo(get) }
-                    }
-                }
-            } catch (e: Throwable) {
-                mainExecutor.post { Toast.makeText(activity, "no connect [err 1]", Toast.LENGTH_LONG).show() }
-                println(e)
-            } finally {
-                try {
-                    IOUtils.closeQuietly(socket)
-                }catch (e: Throwable){
-                    e.printStackTrace()
-                }
-            }
+
+        } catch (e: Throwable) {
+            e.printStackTrace()
+            Log.d("errorsSocket", e.toString())
         }
     }
-    fun destroy(){
-        executor.shutdown()
+
+    fun getList(): ArrayList<Info>{
+        if (socket != null) {
+            kryo.writeObject(output, Info("admin", Constants.GET_JSON_ARRAY))
+            output.flush()
+
+            Log.d("errorsSocket", "socket getList")
+
+            val get = kryo.readObject(input, ArrayList<Info>()::class.java)
+            closeSocket()
+            return get
+        }
+
+        val list = ArrayList<Info>()
+        list.add(Info())
+
+        return list
+    }
+
+    fun getMessage(): Info{
+        if (socket != null) {
+            kryo.writeObject(output, Info("admin", Constants.GET_MESSAGE))
+            output.flush()
+
+            Log.d("errorsSocket", "socket getMassage")
+
+            val get = kryo.readObject(input, Info::class.java)
+            closeSocket()
+            return get
+        }
+        return Info()
+    }
+
+    fun sendMessage(name: String, info: String): Info{
+        if (socket != null) {
+            kryo.writeObject(output, Info(name, info))
+            output.flush()
+
+            Log.d("errorsSocket", "socket sendMessage")
+
+            val get = kryo.readObject(input, Info::class.java)
+            closeSocket()
+            return get
+        }
+        return Info()
     }
 }
