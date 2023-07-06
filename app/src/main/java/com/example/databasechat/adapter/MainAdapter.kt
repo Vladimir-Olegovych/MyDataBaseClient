@@ -22,11 +22,6 @@ class MainAdapter: RecyclerView.Adapter<MainHolder>() {
         }
     }
 
-    fun clear(){
-        listInfo.clear()
-        notifyDataSetChanged()
-    }
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MainHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.card_view, parent, false)
         return MainHolder(view)
