@@ -60,6 +60,7 @@ class MainActivity : AppCompatActivity() {
         binding.rcView.layoutManager = LinearLayoutManager(this)
         binding.rcView.adapter = adapter
 
+        client.registerInfo()
         list()
         repeat()
 
@@ -74,18 +75,23 @@ class MainActivity : AppCompatActivity() {
 
     private fun send(){
         executor.execute {
-            if(client.connect("178.163.60.33", 27015)) {
+            if (client.getBoolean()) {
                 val info = client.sendMessage(
+                    "178.163.60.33", 27015,
                     binding.edTextName.text.toString(),
                     binding.edTextInfo.text.toString()
                 )
-                mainExecutor.post {
-                    adapter.add(info)
-                    binding.edTextInfo.text.clear()
+                if (info.info != "null") {
+                    mainExecutor.post {
+                        binding.edTextInfo.text.clear()
+                        adapter.add(info)
+                        binding.rcView.smoothScrollToPosition(adapter.getItemCount() + 1)
+                    }
                 }
-            }
-            else {
-                mainExecutor.post { toastErrors("no connect [err 1]")
+                else{
+                    mainExecutor.post {
+                        toastErrors("no connect [err 1]")
+                    }
                 }
             }
         }
@@ -95,17 +101,28 @@ class MainActivity : AppCompatActivity() {
         executor2.execute {
             var process = true
             while (process) {
-                Log.d("errorsSocket", "log")
                 Thread.sleep(1_000/3)
-                if(client.connect("178.163.60.33", 27015)) {
-                    val info = client.getMessage()
-                    mainExecutor.post { adapter.add(info) }
-                }
-                else {
-                    mainExecutor.post {
-                        toastErrors("no connect [err 1]")
+                if (client.getBoolean()){
+                    val info = client.getMessage("178.163.60.33", 27015)
+                    if (info.info != "null") {
+                        mainExecutor.post {
+                            adapter.addRepeat(info)
+                            if (adapter.getBool()){
+                                binding.rcView.smoothScrollToPosition(adapter.getItemCount() + 1)
+                                adapter.setBool()
+                            }
+                        }
                     }
-                    process = false
+                    else{
+                        process = false
+                        mainExecutor.post {
+                            adapter.add(info)
+                            if (adapter.getBool()){
+                                binding.rcView.smoothScrollToPosition(adapter.getItemCount() + 1)
+                                adapter.setBool()
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -113,10 +130,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun list(){
         executor.execute {
-            if (client.connect("178.163.60.33", 27015)) {
-                val list = client.getList()
-                mainExecutor.post {
-                    list.forEach { adapter.add(it) }
+            if (client.getBoolean()) {
+
+                val list = client.getList("178.163.60.33", 27015)
+
+                if (list[0].info != "null") {
+                    mainExecutor.post {
+                        list.forEach { adapter.add(it) }
+                    }
                 }
             }
         }

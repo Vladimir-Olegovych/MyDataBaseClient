@@ -9,16 +9,31 @@ import com.example.databasechat.holder.MainHolder
 
 class MainAdapter: RecyclerView.Adapter<MainHolder>() {
     private val listInfo = ArrayList<Info>()
+    private var scroll = false
+
+    fun getBool(): Boolean{
+        return scroll
+    }
+
+    fun setBool(){
+        scroll = false
+    }
 
     fun add(info: Info){
+        listInfo.add(info)
+        notifyDataSetChanged()
+    }
+    fun addRepeat(info: Info){
         if (listInfo.size != 0) {
             if (info.info != listInfo.get(listInfo.size - 1).info) {
                 listInfo.add(info)
                 notifyDataSetChanged()
+                scroll = true
             }
         } else {
             listInfo.add(info)
             notifyDataSetChanged()
+            scroll = true
         }
     }
 
